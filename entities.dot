@@ -1,0 +1,156 @@
+digraph compd {
+    node [
+        shape = "record"
+    ];
+
+    Competition [
+        label = "{\<\<singleton\>\>\nCompetition|" +
+                "- comp-state : \{FAIL, DOWNTIME, MATCH\}\l" +
+                "- permit-tinker : bool\l" +
+                "- \<current-match\> : Match?\l" +
+                "- \<match-state\> : \{ENTER, BOOT, LIVE, SETTLE\}?\l" +
+                "- \<match-type\> : \{LEAGUE, SHOWMATCH, KNOCKOUTS\}?\l" +
+                "- real-time : int (relative to Unix epoch)\l" +
+                "- pause-time : int? (in competition time)\l" +
+                "- \<competition-time\> : int\l" +
+                "- \<arena-enterable\> : \{OPEN, SOFT-CLOSED, HARD-CLOSED\}\l}"
+    ];
+
+    SyncPoint [
+        label = "{SyncPoint|" +
+                "- real-time : int\l" +
+                "- competition-time : int\l}"
+    ];
+
+    Screen [
+        label = "{Screen|" +
+                "- id : int\l" +
+                "- flavour : \{CLOCK, LAYOUT, ZONE, JUDGE, MATCH-INFO, BLANK\}\l" +
+                "- zone : int?\l" +
+                "- override-text : text?\l}"
+    ];
+
+    Team [
+        label = "{Team|" +
+                "- tla : text\l" +
+                "- name : text\l" +
+                "- college : text?\l" +
+                "- info : text?\l" +
+                "- notes : text\l" +
+                "- disqualified : bool\l}"
+    ];
+
+    Match [
+        label = "{\<\<abstract\>\>\nMatch|" +
+                "- start-time : int (in competition time, time of MATCH START)\l" +
+                "- \<state\> : \{UPCOMING, IN-PROGRESS, COMPLETED\}\l}"
+    ];
+
+    LeagueMatch [
+        label = "{LeagueMatch|" +
+                "- teams : Team x 4\l}"
+    ];
+
+    ShowMatch [
+        label = "{ShowMatch|" +
+                "- teams : Team x 4\l}"
+    ];
+
+    KnockoutMatch [
+        label = "{KnockoutMatch|" +
+                "- stage : int\l" +
+                "- \<teams\> : Team x 4\l}"
+    ];
+
+    GameEvent [
+        label = "{\<\<abstract\>\>\nGameEvent|" +
+                "- game-time : real (in game time)\l}"
+    ];
+
+    RobotDisqualifiedEvent [
+        label = "{RobotDisqualifiedEvent|" +
+                "- zone : int\l}";
+    ];
+
+    MusicTrack [
+        label = "{MusicTrack|" +
+                "- url : text\l" +
+                "- usage : \{TINKER, LEAGUE, SHOWMATCH, KNOCKOUT-BUILDUP, KNOCKOUT-LIVE\}*\l}"
+    ];
+
+    MusicPlay [
+        label = "{MusicPlay|" +
+                "- time: int (in real time)";
+    ];
+
+    _Events [
+        label = "{Events|" +
+                "Input\n" +
+                "- real time clock tick\l" +
+                "- screen requests refresh\l" +
+                "- blueshirts: panic [= enter fail state, stop music and pause]\l" +
+                "- blueshirts: enter briefing state\l" +
+                "- blueshirts: enter tinker state\l" +
+                "- blueshirts: cancel match\l" +
+                "- blueshirts: schedule new match\l" +
+                "- blueshirts: delay matches\l" +
+                "- blueshirts: remove song from playlists\l" +
+                "- blueshirts: add song to playlists\l" +
+                "- blueshirts: add new song\l" +
+                "- blueshirts: add team\l" +
+                "- blueshirts: update team\l" +
+                "- blueshirts: remove team\l" +
+                "- blueshirts: pause\l" +
+                "- blueshirts: unpause\l" +
+                "- blueshirts: override screen with message\l" +
+                "- blueshirts: cancel override screen\l" +
+                "- blueshirts: add screen\l" +
+                "- blueshirts: remove screen\l" +
+                "- blueshirts: disqualify robot from match\l" +
+                "- music finished\l" +
+                "- record game event\l|" +
+                "Output\n" +
+                "- set screen content\l" +
+                "- partial update screen content\l" +
+                "- web page update\l" +
+                "- robot start signal\l" +
+                "- robot stop signal\l" +
+                "- play sound effect\l" +
+                "- play music\l" +
+                "- stop music\l}"
+    ];
+
+    // subclass relations
+
+    edge [
+        arrowhead = "empty"
+    ];
+
+    LeagueMatch -> Match;
+    ShowMatch -> Match;
+    KnockoutMatch -> Match;
+    RobotDisqualifiedEvent -> GameEvent;
+
+    // one-to-many relations
+
+    edge [
+        arrowhead = "crow"
+    ];
+
+    Competition -> Screen;
+    Competition -> Team;
+    Competition -> Match;
+    Competition -> MusicTrack;
+    Competition -> SyncPoint;
+    Match -> GameEvent;
+
+    // many-to-many relations
+
+    edge [
+        arrowhead = "crow"
+        arrowtail = "crow"
+    ];
+
+    Match -> Team;
+}
+

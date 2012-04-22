@@ -1,0 +1,14 @@
+digraph StateMachine {
+    Start [shape = "doublecircle"]
+    node [shape = "circle"]
+
+    Start -> Downtime;
+
+    Downtime -> Match [label = "match due"];
+    Match -> Downtime [label = "match finished"];
+    Match -> Fail [label = "panic on"];
+    Fail -> Match [label = "panic on, match due"];
+    Fail -> Downtime [label = "panic off, match not due"];
+    Downtime -> Fail [label = "panic on"];
+}
+

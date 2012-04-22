@@ -1,0 +1,296 @@
+(blueshirt commands are sent over a channel called BLUESHIRTS)
+
+STATE CONTROLLER
+
+EVENT real time clock pulse:
+  transmit HEARTBEAT(real-time, competition-time) on channel HEARTBEAT
+  compute current match and match state
+  if current match differs from match.current:
+    match.schedule.[match.current].state <- COMPLETED
+    match.schedule.[match].state <- IN-PROGRESS iff match is not NULL
+    match.current <- match
+  if current match became non-NULL and comp.state.global == DOWNTIME:
+    broadcast_state <- true
+    comp.state.global <- MATCH
+  elif current match became NULL and comp.state.global == MATCH:
+    broadcast_state <- true
+    comp.state.global <- MATCH
+  if match state differs from previous or broadcast_state:
+    comp.state.match <- new_state
+    transmit STATE(comp.state.global, comp.state.match) on channel STATE
+  if comp.pause != NULL
+      transmit OFFSET-SHIFT on channel HEARTBEAT
+
+EVENT panic:
+  comp.pause <- current competition time
+  comp.state.global <- FAIL
+  transmit STATE(comp.state.global, comp.state.match) on channel STATE
+
+EVENT panic-over:
+  comp.sync[] <- (current_real_time, comp.pause)
+  comp.pause <- NULL
+  if match.current is not NULL:
+    comp.state.global <- MATCH
+  else:
+    comp.state.global <- DOWNTIME
+  transmit STATE(comp.state.global, comp.state.match) on channel STATE
+
+EVENT pause:
+  comp.pause <- current competition time
+
+EVENT unpause:
+  comp.sync[] <- (current_real_time, comp.pause)
+  comp.pause <- NULL
+
+EVENT competition-start:
+  comp.sync = [(current_real_time, 0)]
+  comp.state.global <- DOWNTIME
+  transmit 'trigger' on channel comp.kickoff
+  transmit comp.state.global, comp.state.match on channel comp.state
+  transmit current_real_time, 0 on channel comp.heartbeat
+  transmit 'trigger' on channel comp.offset_shift
+
+EVENT delay-matches(match, amount):
+  if match is live or in the past:
+    deny
+  delay existing matches from match onwards by amount until the nearest break (of more than 1 minute)
+  transmit RECOMPUTE on channel SCHEDULE
+
+EVENT schedule-match(match):
+  if match would be live or in the past:
+    deny
+  find earliest existing match overlapped by match and issue delay-matches(existing match, 390)
+  add match into schedule
+  transmit 'trigger' on channel match.reschedule
+
+EVENT cancel-match(match):
+  if match is in the past:
+    deny
+  remove match from schedule
+  if match was current:
+    match.current <- NULL
+    comp.state.global <- DOWNTIME
+    transmit (comp.state.global, comp.state.match) on channel comp.state
+  else:
+    find next match
+    issue delay-matches(next, -390)
+  transmit 'trigger' on channel match.reschedule
+
+EVENT add-team(team):
+  teams.roster[] <- team
+  transmit 'new' on channel teams.[team.tla]
+
+EVENT update-team(team):
+  teams.roster[team.tla] <- team
+  transmit 'updated' on channel teams.[team.tla]
+
+EVENT remove-team(tla):
+  for each match containing team:
+    issue cancel-match(match)
+  del teams.roster[team.tla]
+  transmit 'gone' on channel teams.[tla]
+
+--
+
+ARENA CONTROLLER
+
+table permit-entry(global-state, match-state, tinker):
+  +----------+--------+-------+-------------+
+  | FAIL     |   x    |   x   | HARD-CLOSED |
+  | DOWNTIME |   x    | TRUE  | OPEN        |
+  | DOWNTIME |   x    | FALSE | SOFT-CLOSED |
+  | MATCH    | ENTER  |   x   | OPEN        |
+  | MATCH    | BOOT   |   x   | SOFT-CLOSED |
+  | MATCH    | LIVE   |   x   | HARD-CLOSED |
+  | MATCH    | SETTLE |   x   | SOFT-CLOSED |
+  +----------+--------+-------+-------------+
+
+RECEIVE STATE(global, match) on channel STATE:
+  enterable <- look up permit-entry(global, match, comp.state.tinker)
+  if enterable != comp.state.arena:
+    comp.state.arena <- enterable
+    transmit enterable on channel comp.arena
+  if match == LIVE:
+    initialise scores
+    transmit [0, 0, 0, 0], [0, 0, 0, 0] on channel match.current.scores
+  if match == SETTLE:
+    compute final scores
+    transmit final-scores, NULL on channel match.current.scores
+
+EVENT enter-tinker-mode:
+  comp.state.tinker <- TRUE
+  enterable <- look up permit-entry(global, match, comp.state.tinker)
+  if enterable != comp.state.arena:
+    comp.state.arena <- enterable
+    transmit enterable on channel comp.arena
+
+EVENT enter-briefing-mode:
+  comp.state.tinker <- FALSE
+  enterable <- look up permit-entry(global, match, comp.state.tinker)
+  if enterable != comp.state.arena:
+    comp.state.arena <- enterable
+    transmit enterable on channel comp.arena
+
+EVENT record-game-event(event):
+  if comp.state.global is not MATCH:
+    deny
+  if comp.state.match is not in (MATCH, SETTLE):
+    deny
+  matches[match.current].events[] <- event
+  transmit event on channel match.current.events
+  update score prediction and current
+  transmit current-scores, predicted-scores on channel match.current.scores
+
+--
+
+MUSIC CONTROLLER
+
+EVENT add-new-song(song):
+  issue add-song-to-playlist(song, 'all')
+
+EVENT add-song-to-playlist(song, playlist):
+  music.playlist.[playlist][] <- song
+
+EVENT remove-song-from-playlist(song, playlists):
+  remove song from music.playlist.[playlist]
+
+EVENT music-finished:
+  issue next-track
+
+EVENT stop-music:
+  stop currently playing music
+
+table music-actions(global, match):
+  +----------+--------+-------+
+  | FAIL     |   x    | STOP  |
+  | DOWNTIME |   x    | START |
+  | MATCH    | ENTER  | START |
+  | MATCH    | BOOT   | x     |
+  | MATCH    | LIVE   | START |
+  | MATCH    | SETTLE | x     |
+  +----------+--------+-------+
+
+RECEIVE STATE(global-state, match-state) on channel STATE:
+  look up music-actions(global-state, match-state):
+    issue either stop-music or next-track. possibly.
+
+EVENT next-track:
+  pick a song meeting the current state
+  play that bastard
+  music.plays[] = (real_time, uri)
+
+--
+
+SCREEN CONTROLLER (runs a miniature httpd to which the screens can connect)
+
+EVENT add-screen(id, flavour, zone=null):
+  screens.[id].flavour <- flavour
+  screens.[id].zone <- zone
+  issue refresh-screen(id)
+
+EVENT remove-screen(id)
+  del screens.[id].flavour
+  del screens.[id].zone
+  del screens.[id].override
+
+EVENT refresh-screen(id)
+  compute CONTENT(id) and send to screen id
+
+EVENT update-screen(id)
+  compute UPDATE(id)
+  if not null:
+    send to screen id
+
+RECEIVE STATE(_, _) on channel STATE:
+  for each screen:
+    refresh-screen(id)
+
+RECEIVE HEARTBEAT(_, _) on channel HEARTBEAT:
+  for each screen in flavour (CLOCK, ZONE, JUDGE):
+    issue update-screen(id)
+
+RECEIVE OFFSET-SHIFT on channel HEARTBEAT:
+  if time mod 15 == 0:
+    for each screen in flavour (JUDGE, MATCH-INFO):
+      issue refresh-screen(id)
+
+RECEIVE RECOMPUTE on channel SCHEDULE:
+  for each screen in flavour (LAYOUT, JUDGE, MATCH-INFO):
+    issue refresh-screen(id)
+
+RECEIVE UPDATE(tla) on channel TEAMS:
+  for each screen in flavour (LAYOUT, ZONE, JUDGE, MATCH-INFO):
+    issue refresh-screen(id)
+
+EVENT override-screen(id, message):
+  screens.override[id] <- message
+  issue refresh-screen(id)
+
+EVENT cancel-override-screen(id):
+  del screens.override[id]
+  issue refresh-screen(id)
+
+computation of CONTENT(id):
+  # specifics ignored, but here's a rough table, ignoring overrides
+  +------------+----------+-------+--------+--------------+
+  | FLAVOUR    | GLOBAL   | MATCH | ARENA  | DISPLAY      |
+  +------------+----------+-------+--------+--------------+
+  |    x       | FAIL     |   x   |   x    | NO-ENTRY     |
+  | CLOCK      |     x    |   x   |   x    | CLOCK        |
+  | LAYOUT     | DOWNTIME |   x   | CLOSED | NO-ENTRY     |
+  | LAYOUT     | DOWNTIME |   x   | OPEN   | NEXT-MATCH   |
+  | LAYOUT     | MATCH    |   x   | CLOSED | NO-ENTRY     |
+  | LAYOUT     | MATCH    |   x   | OPEN   | LAYOUT       |
+  | ZONE       | DOWNTIME |   x   |   x    | CLOCK        |
+  | ZONE       | MATCH    |   x   |   x    | ZONE         |
+  | JUDGE      | DOWNTIME |   x   |   x    | SCHED/LEAGUE |
+  | JUDGE      | MATCH    |   x   |   x    | STATS        |
+  | MATCH-INFO |     x    |   x   |   x    | SCHED/LEAGUE |
+  | BLANK      |     x    |   x   |   x    | NOTHING      |
+  +------------+----------+-------+--------+--------------+
+
+
+---
+
+REDIS!
+
+Keys:
+  match.schedule.[id].type
+  match.schedule.[id].teams
+  match.schedule.[id].start
+  match.schedule.[id].scores
+  match.schedule.[id].state
+  match.schedule.[id].stage
+  match.current
+  comp.state.global
+  comp.state.match
+  comp.state.tinker
+  comp.state.arena
+  comp.pause
+  comp.sync
+  teams.[tla].name
+  teams.[tla].college
+  teams.[tla].disqualified
+  teams.[tla].info
+  teams.[tla].notes
+  music.playlist.[list]
+  music.plays
+  screens.[id].flavour
+  screens.[id].zone
+  screens.[id].override
+
+channels:
+  comp.heartbeat
+  comp.offset_shift
+  comp.kickoff
+  comp.state
+  comp.arena
+  teams.[tla]
+  match.reschedule
+  match.current.scores
+  match.current.events
+  comp.command
+  controller.[controller].heartbeat
+  #screens.[screen].refresh
+  #screens.[screen].update.[element]
+

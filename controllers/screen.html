@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Screen</title>
+        <link rel="stylesheet" type="text/css" href="assets/style.css" />
+    </head>
+    <body>
+        <div id="titlebox">
+            <h1 id="title">Student Robotics</h1>
+        </div>
+        <div id="content">
+            <h1>waiting for ID</h1>
+        </div>
+        <script type="text/javascript">
+            setTimeout(function() {
+                var xhr = new XMLHttpRequest();
+                var id = null;
+                xhr.open('POST', 'id', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4) {
+                        if (xhr.status == 200) {
+                            id = parseInt(xhr.response);
+                            var source = new EventSource('events/' + id);
+                            source.onmessage = function(event) {
+                                // yes, this is terrible practice
+                                var data = eval(event.data);
+                                document.getElementById(data[0]).innerHTML = data[1];
+                            };
+                        } else {
+                            document.getElementById('content').innerHTML = 'UNABLE TO GET ID';
+                        }
+                    }
+                };
+                xhr.send();
+            }, 800);
+        </script>
+    </body>
+</html>
+

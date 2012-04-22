@@ -1,0 +1,32 @@
+compd state -- query
+compd panic (on)
+compd panic over
+compd pause
+compd unpause
+compd start
+compd briefing
+compd tinker
+compd cancel [time]
+compd schedule league [time] [tla x 4]
+compd schedule showmatch [time] [tla x 4]
+compd schedule knockout [time] [stage]
+compd schedule show
+compd delay [time-onwards] [length]
+compd playlist add [playlist] [uri]
+compd playlist del [playlist] [uri]
+compd music stop
+compd music start|next
+compd music now [uri]
+compd team add [tla]
+compd team set [tla] [key] [value]
+compd team show [tla]
+compd team del [tla]
+compd screen add [id] [flavour] (zone)
+compd screen del [id]
+compd screen refresh [id]
+compd screen list
+compd screen override [id] < content
+compd game [event] (zone) (marker)
+compd scores
+compd league
+
