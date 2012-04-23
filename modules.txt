@@ -149,7 +149,7 @@ EVENT add-new-song(song):
   issue add-song-to-playlist(song, 'all')
 
 EVENT add-song-to-playlist(song, playlist):
-  music.playlist.[playlist][] <- song
+  music.playlist.[playlist][] <- (song, rand[0..1])
 
 EVENT remove-song-from-playlist(song, playlists):
   remove song from music.playlist.[playlist]
@@ -177,7 +177,7 @@ RECEIVE STATE(global-state, match-state) on channel STATE:
 EVENT next-track:
   pick a song meeting the current state
   play that bastard
-  music.plays[] = (real_time, uri)
+  music.history[] = (real_time, uri)
 
 --
 
@@ -274,7 +274,7 @@ Keys:
   teams.[tla].info
   teams.[tla].notes
   music.playlist.[list]
-  music.plays
+  music.history
   screens.[id].flavour
   screens.[id].zone
   screens.[id].override
