@@ -182,7 +182,6 @@ class InfoContent(Content):
             return self.content
 
 class JudgeStatsContent(Content):
-
     def content(self, screen):
         match = self.controller.r.get('match.current')
         if match is None:
