@@ -153,6 +153,10 @@ def briefing():
     send_redis_command('briefing')
 
 @subcommand
+def shutdown():
+    r.shutdown()
+
+@subcommand
 def state():
     gstate = r.get('comp.state.global')
     mstate = r.get('comp.state.match')
