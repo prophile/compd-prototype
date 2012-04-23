@@ -143,7 +143,7 @@ class ZoneContent(Content):
         team = self.controller.r.lindex("match.schedule.{0}.teams".format(match), screen.zone)
         name = self.controller.r.get("teams.{0}.name".format(team))
         time = match_time(self.controller, match)
-        return '<h2>{0}</h2><h3>{1}</h3><br><h4 id="time">{2}</h4>'.format(name, team, time)
+        return '<h2>{0}</h2><h3 id="time">{1}</h3>'.format(name, time)
 
     def update(self, screen):
         match = self.controller.r.get('match.current')
