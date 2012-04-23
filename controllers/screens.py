@@ -159,7 +159,23 @@ class ZoneContent(Content):
 
 class InfoContent(Content):
     def content(self, screen):
-        return 'SCHEDULE AND/OR LEAGUE HERE'.format(screen.zone)
+        import time
+        # TODO: add league
+        match_keys = self.controller.r.keys('match.schedule.*.start')
+        match_starts = {}
+        for key in match_keys:
+            match = key.split('.')[2]
+            match_starts[self.controller.competition_time_to_real_time(int(self.controller.r.get(key)))] = match
+        rt = time.time()
+        sched = '<table>'
+        sched += '<col style="width: 8em;">'
+        sched += '<col style="width: 20em;">'
+        sched += '<tr><th>Time</th><th>Teams</th></tr>'
+        for t, match in sorted(match_starts.items()):
+            teams = self.controller.r.lrange("match.schedule.{0}.teams".format(match), 0, -1)
+            sched += '<tr><td style="color: {2};">{0}</td><td style="color: {2};">{1}</td></tr>'.format(time.strftime('%H:%M:%S', time.localtime(t)), ', '.join(teams), 'black' if t > rt else '#666666')
+        sched += '</table>'
+        return sched
 
     def action_for_event(self, event):
         if event in ('offset', 'team', 'schedule'):
