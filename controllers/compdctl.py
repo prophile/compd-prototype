@@ -228,18 +228,112 @@ def match_cancel(name):
     send_redis_command('cancel-match', name=name)
 
 @subcommand
-def help():
-    print 'Available commands:'
+def music_play(uri):
+    """Play music directly by URI.
+
+    This will stop the currently playing track, if any, rather than playing
+    over the top.
+
+    """
+    send_redis_command('music-play', uri=uri)
+
+@subcommand
+def music_stop():
+    """Stop the currently playing music.
+
+    If there is no music playing, this command has no effect.
+
+    """
+    send_redis_command('music-stop')
+
+@subcommand
+def music_next():
+    """Advance to the next track in the current playlist."""
+    send_redis_command('music-next')
+
+@subcommand
+def music_add(uri, *playlists):
+    """Add a track to one or more playlists.
+
+    If no playlists are specified, the playlist 'default' is assumed.
+
+    """
+    if not playlists:
+        playlists = ['default']
+    for playlist in playlists:
+        send_redis_command('music-add', playlist=playlist, uri=uri)
+
+@subcommand
+def music_del(uri, *playlists):
+    """Remove a track from one or more playlists.
+
+    If no playlists are specified, the playlist 'default' is assumed.
+
+    """
+    if not playlists:
+        playlists = ['default']
+    for playlist in playlists:
+        send_redis_command('music-del', playlist=playlist, uri=uri)
+
+@subcommand
+def music_playlist(playlist):
+    """Select a playlist for music playback.
+
+    The default playlist is called 'default'.
+
+    """
+    send_redis_command('music-playlist', playlist=playlist)
+
+@subcommand
+def help(*commands):
+    """Display a list of commands.
+
+    May, optionally, take a list of specific commands for more detailed help.
+
+    """
+    lines = []
+    import sys
+    invocation = sys.argv[0]
+    def out(string, *args, **kwargs):
+        if args or kwargs:
+            string = string.format(*args, **kwargs)
+        lines.extend(string.split('\n'))
+    if not commands:
+        out('Available commands:')
     import inspect
+    def format_docstring(string):
+        return inspect.cleandoc(string)
     for command, function in sorted(subcommands.items()):
+        if commands and command not in commands:
+            continue
         aspec = inspect.getargspec(function)
         args = list(aspec.args)
         if aspec.varargs is not None:
             args.append(aspec.varargs + '...')
-        print '\t{0} {1}'.format(command, ' '.join('[{0}]'.format(a) for a in args))
+        out('{2}{0} {1}', command, ' '.join('[{0}]'.format(a) for a in args), '\t' if not commands else invocation + ' ')
+        if commands and function.__doc__:
+            import textwrap
+            out(format_docstring(function.__doc__))
+        if len(commands) == 1:
+            out('')
+            out('Implementation: ')
+            out(inspect.getsource(function))
+    if len(lines) <= 20:
+        for line in lines:
+            print line
+    else:
+        import tempfile, os
+        fp, filename = tempfile.mkstemp()
+        os.write(fp, '\n'.join(lines))
+        os.fsync(fp)
+        os.system('less "{0}"'.format(filename))
+        os.close(fp)
 
 try:
-    invoke(sys.argv[1], sys.argv[2:])
+    if len(sys.argv) >= 2:
+        invoke(sys.argv[1], sys.argv[2:])
+    else:
+        invoke('help', [])
 except KeyboardInterrupt:
     pass
 
