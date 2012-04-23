@@ -413,12 +413,16 @@ class ScreenController(Controller):
 
     def trigger(self, screen, event = None):
         action = action_for_screen(self, screen, event)
-        result = action(screen) if action else None
-        if isinstance(result, str):
-            self.update(screen, 'content', result)
-        elif result is not None:
-            for k, v in result.iteritems():
-                self.update(screen, k, v)
+        try:
+            result = action(screen) if action else None
+            if isinstance(result, str):
+                self.update(screen, 'content', result)
+            elif result is not None:
+                for k, v in result.iteritems():
+                    self.update(screen, k, v)
+        except Exception as e:
+            print "Caught exception updating screen {0}".format(screen.id)
+            print e
 
     def add_sse_stream(self, screen, stream):
         self._screen_connections[screen.id].append(stream)
