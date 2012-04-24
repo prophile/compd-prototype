@@ -198,6 +198,8 @@ class JudgeStatsContent(Content):
         stats += '<tr><th>Team</th><th>College</th><th>Info</th><th>Notes</th></tr>'
         for team in teams:
             name = self.controller.r.get('teams.{0}.name'.format(team))
+            if name is None:
+                raise ValueError("team {0} does not exist".format(name))
             college = self.controller.r.get('teams.{0}.college'.format(team))
             info = self.controller.r.get('teams.{0}.info'.format(team)).strip()
             notes = self.controller.r.get('teams.{0}.notes'.format(team)).strip()
