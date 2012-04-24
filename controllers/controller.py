@@ -70,11 +70,20 @@ class Controller(object):
     def _handle_channel_message(self, channel, data):
         if channel == 'comp.command':
             command_data = json.loads(data)
-            self.command(command_data["command"], command_data)
+            try:
+                self.command(command_data["command"], command_data)
+            except Exception as e:
+                print "error handling command {0}:".format(command_data["command"]), e
         elif channel == 'comp.heartbeat':
-            self.receive_heartbeat(*map(int, data.split(' ')))
+            try:
+                self.receive_heartbeat(*map(int, data.split(' ')))
+            except Exception as e:
+                print "error handling heartbeat:", e
         else:
-            self.handle_channel_message(channel, data)
+            try:
+                self.handle_channel_message(channel, data)
+            except Exception as e:
+                print "error handling heartbeat:", e
 
     def handle_channel_message(self, channel, data):
         pass
