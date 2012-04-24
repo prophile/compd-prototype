@@ -1,6 +1,7 @@
 from twisted.internet import reactor, protocol
 
 GSTREAMER_BIN = '/usr/local/bin/gst-launch'
+PRINT_DEBUGGING_OUTPUT = False
 
 class TrackPlayerProtocol(protocol.ProcessProtocol):
     def __init__(self, on_finished):
@@ -30,6 +31,13 @@ class TrackPlayerProtocol(protocol.ProcessProtocol):
         for chunk in buffer:
             self.sendChunk(chunk)
 
+    def outReceived(self, message):
+        if PRINT_DEBUGGING_OUTPUT:
+            print message,
+    def errReceived(self, message):
+        if PRINT_DEBUGGING_OUTPUT:
+            print message,
+
 class TrackDownloaderProtocol(protocol.ProcessProtocol):
     def __init__(self, chunk_handler):
         self.chunk_handler = chunk_handler
@@ -46,6 +54,10 @@ class TrackDownloaderProtocol(protocol.ProcessProtocol):
             self.chunk_handler(None)
         except IOError:
             pass
+
+    def errReceived(self, message):
+        if PRINT_DEBUGGING_OUTPUT:
+            print message,
 
     def processExited(self, status):
         self.terminated = True
