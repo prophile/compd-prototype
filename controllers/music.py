@@ -1,4 +1,4 @@
-from play_track import play_track, play_file
+from play_track import play_track, play_file, discover_song_description
 from controller import Controller
 from twisted.internet import reactor
 import random
@@ -59,10 +59,21 @@ class MusicController(Controller):
 
     def status_message(self):
         if self.current_track:
-            track = "playing track {0}".format(self.current_track)
+            track = "playing track {0}".format(self.description(self.current_track))
         else:
             track = "no current track"
         return 'running, {0} (on playlist {1})'.format(track, self.playlist)
+
+    def _get_description(self, uri):
+        return self.r.hget('music.descriptions', uri)
+
+    def description(self, uri):
+        desc = self._get_description(uri)
+        if desc:
+            return desc
+        else:
+            from urlparse import urlparse
+            return urlparse(uri).path.split('/')[-1]
 
     def play(self, uri):
         self.stop()
@@ -78,6 +89,10 @@ class MusicController(Controller):
         import time
         self.r.rpush('music.history', '{0} {1}'.format(time.time(),
                                                        uri))
+        if not self._get_description(uri):
+            def got_description(desc):
+                self.r.hsetnx('music.descriptions', uri, desc)
+            discover_song_description(uri, got_description)
 
     def stop(self):
         if self.current_track_cancel:
