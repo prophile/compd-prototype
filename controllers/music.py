@@ -1,4 +1,4 @@
-from play_track import play_track
+from play_track import play_track, play_file
 from controller import Controller
 from twisted.internet import reactor
 import random
@@ -65,6 +65,9 @@ class MusicController(Controller):
         if track is not None:
             self.play(track)
 
+    def play_effect(self, effect):
+        play_file('sfx/{0}.flac'.format(effect))
+
     def playlist_add(self, playlist, uri):
         minimum = min(score for value, score
                           in self.r.zrangebyscore('music.playlist.{0}'.format(playlist),
@@ -106,6 +109,9 @@ class MusicController(Controller):
 
     def command_music_playlist(self, playlist):
         self.playlist = playlist
+
+    def command_sound_effect(self, effect):
+        self.play_effect(effect)
 
 if __name__ == "__main__":
     controller = MusicController()
