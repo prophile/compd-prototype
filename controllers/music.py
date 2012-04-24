@@ -32,9 +32,15 @@ class MusicController(Controller):
                 if self.stopped_for_fail:
                     self.play(self.stopped_for_fail)
                     self.stopped_for_fail = None
-                elif mstate == 'LIVE' and self.start_on_live:
-                    self.next()
-                    self.start_on_live = False
+                if gstate == 'MATCH':
+                    if mstate == 'LIVE':
+                        if self.start_on_live:
+                            self.next()
+                            self.start_on_live = False
+                        self.play_effect('match_begin')
+                    elif mstate == 'SETTLE':
+                        self.play_effect('match_end')
+
 
     def _get_playlist(self):
         if self._playlist == 'auto':
