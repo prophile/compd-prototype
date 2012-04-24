@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import functools, redis, json
-import sys
+import sys, time
 from itertools import izip_longest
 from copy import copy
 from parsedatetime.parsedatetime import Calendar
@@ -295,6 +295,18 @@ def music_playlist(playlist):
 
     """
     send_redis_command('music-playlist', playlist=playlist)
+
+@subcommand
+def music_history():
+    """Get the music history."""
+    tracks = r.lrange('music.history', 0, -1)
+    for track in tracks:
+        t, uri = track.split(' ', 1)
+        time_string = time.strftime('%A %H:%M', time.localtime(float(t)))
+        desc = r.hget('music.descriptions', uri)
+        if not desc:
+            desc = uri
+        print time_string, desc
 
 @subcommand
 def sound_effect(effect):
