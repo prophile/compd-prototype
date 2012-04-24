@@ -12,6 +12,9 @@ class MusicController(Controller):
         self.playlist = "default"
         self.stopped_for_fail = None
         self.start_on_live = False
+        self.fail_cancel = None
+        if self.r.get('comp.state.global') == 'FAIL':
+            self.play_fail_klaxon()
 
     def _register_subscriptions(self, ps):
         ps.subscribe('comp.state')
@@ -23,7 +26,9 @@ class MusicController(Controller):
                 if self.current_track is not None:
                     self.stopped_for_fail = self.current_track
                     self.stop()
+                self.play_fail_klaxon()
             else:
+                self.stop_fail_klaxon()
                 if self.stopped_for_fail:
                     self.play(self.stopped_for_fail)
                     self.stopped_for_fail = None
@@ -64,6 +69,19 @@ class MusicController(Controller):
         # pick a track here and play it
         if track is not None:
             self.play(track)
+
+    def play_fail_klaxon(self):
+        if self.fail_cancel:
+            return
+        def play_klaxon():
+            import os.path
+            self.fail_cancel = play_file('sfx/fail_klaxon.flac', play_klaxon)
+        play_klaxon()
+
+    def stop_fail_klaxon(self):
+        if self.fail_cancel:
+            self.fail_cancel()
+            self.fail_cancel = None
 
     def play_effect(self, effect):
         play_file('sfx/{0}.flac'.format(effect))
