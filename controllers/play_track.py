@@ -62,7 +62,7 @@ def play_track(uri, on_finished = None):
                                              'autoaudiosink'])
     downloader_transport = reactor.spawnProcess(downloader_protocol,
                                                 'curl',
-                                                ['curl', '-N', uri])
+                                                ['curl', '-N', '-L', uri])
     def cancel():
         player_protocol.on_finished = None
         player_transport.signalProcess('TERM')
