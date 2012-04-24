@@ -70,11 +70,12 @@ class MusicController(Controller):
 
     def playlist_add(self, playlist, uri):
         minimum = min(score for value, score
-                          in self.r.zrangebyscore('music.playlist.{0}'.format(playlist),
+                          in [(0, 0)] +
+                             self.r.zrangebyscore('music.playlist.{0}'.format(playlist),
                                                   0, float('inf'),
                                                   withscores = True))
         self.r.zadd('music.playlist.{0}'.format(playlist),
-                    max(0.0, minimum + random.gauss(0.5, 0.3)),
+                    minimum + random.random(),
                     uri)
 
     def playlist_remove(self, playlist, uri):
