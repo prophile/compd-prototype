@@ -288,10 +288,20 @@ def music_del(uri, *playlists):
 def music_playlist(playlist):
     """Select a playlist for music playback.
 
-    The default playlist is called 'default'.
+    The special playlist 'auto' will resolve to either 'match' or 'downtime'
+    depending on the state at time of play.
 
     """
     send_redis_command('music-playlist', playlist=playlist)
+
+@subcommand
+def sound_effect(effect):
+    """Play a sound effect."""
+    send_redis_command('sound-effect', effect=effect)
+
+@subcommand
+def uri_test(uri):
+    print parse_location(uri)
 
 @subcommand
 def help(*commands):
