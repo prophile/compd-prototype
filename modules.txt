@@ -275,6 +275,7 @@ Keys:
   teams.[tla].notes
   music.playlist.[list]
   music.history
+  music.descriptions
   screens.[id].flavour
   screens.[id].zone
   screens.[id].override
