@@ -345,4 +345,8 @@ try:
         invoke('help', [])
 except KeyboardInterrupt:
     pass
+except redis.exceptions.ConnectionError:
+    print "compd is down"
+    import sys
+    sys.exit(1)
 
