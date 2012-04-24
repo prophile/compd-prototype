@@ -72,3 +72,8 @@ def play_track(uri, on_finished = None):
                 downloader_transport.signalProcess('KILL')
     return cancel
 
+def play_file(path, on_finished = None):
+    import urllib, os.path
+    file_uri = 'file://{0}'.format(urllib.quote(os.path.realpath(path)))
+    return play_track(file_uri, on_finished)
+
