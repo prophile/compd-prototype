@@ -39,7 +39,7 @@ class TrackDownloaderProtocol(protocol.ProcessProtocol):
         try:
             self.chunk_handler(data)
         except IOError:
-            self.closeStdout()
+            self.transport.closeStdout()
 
     def outConnectionLost(self):
         try:
