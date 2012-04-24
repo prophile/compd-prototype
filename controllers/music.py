@@ -9,7 +9,7 @@ class MusicController(Controller):
     def configure(self):
         self.current_track = None
         self.current_track_cancel = None
-        self.playlist = "default"
+        self._playlist = "auto"
         self.stopped_for_fail = None
         self.start_on_live = False
         self.fail_cancel = None
@@ -35,6 +35,21 @@ class MusicController(Controller):
                 elif mstate == 'LIVE' and self.start_on_live:
                     self.next()
                     self.start_on_live = False
+
+    def _get_playlist(self):
+        if self._playlist == 'auto':
+            gstate = self.r.get('comp.state.global')
+            if gstate == 'MATCH':
+                return 'match'
+            else:
+                return 'downtime'
+        else:
+            return self._playlist
+
+    def _set_playlist(self, playlist):
+        self._playlist = playlist
+
+    playlist = property(fget = _get_playlist, fset = _set_playlist)
 
     def status_message(self):
         if self.current_track:

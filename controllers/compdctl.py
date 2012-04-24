@@ -264,7 +264,8 @@ def music_next():
 def music_add(uri, *playlists):
     """Add a track to one or more playlists.
 
-    If no playlists are specified, the playlist 'default' is assumed.
+    If no playlists are specified, the playlists 'match' and 'downtime' are
+    assumed.
 
     """
     if not playlists:
@@ -276,7 +277,8 @@ def music_add(uri, *playlists):
 def music_del(uri, *playlists):
     """Remove a track from one or more playlists.
 
-    If no playlists are specified, the playlist 'default' is assumed.
+    If no playlists are specified, the playlists 'match' and 'downtime' are
+    assumed.
 
     """
     if not playlists:
