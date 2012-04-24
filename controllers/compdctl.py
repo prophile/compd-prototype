@@ -8,6 +8,15 @@ from parsedatetime.parsedatetime import Calendar
 r = redis.StrictRedis()
 subcommands = {}
 
+def parse_location(location):
+    import os.path, urlparse, urllib
+    parts = urlparse.urlparse(location)
+    if parts.scheme == '':
+        path = os.path.realpath(location)
+        return 'file://{0}'.format(urllib.quote(path if os.path.exists(path) else location))
+    else:
+        return urlparse.urlunparse(map(urllib.quote, parts))
+
 def send_redis_command(command, **kwargs):
     cp = copy(kwargs)
     cp['command'] = command
@@ -235,7 +244,7 @@ def music_play(uri):
     over the top.
 
     """
-    send_redis_command('music-play', uri=uri)
+    send_redis_command('music-play', uri=parse_location(uri))
 
 @subcommand
 def music_stop():
@@ -261,7 +270,7 @@ def music_add(uri, *playlists):
     if not playlists:
         playlists = ['default']
     for playlist in playlists:
-        send_redis_command('music-add', playlist=playlist, uri=uri)
+        send_redis_command('music-add', playlist=playlist, uri=parse_location(uri))
 
 @subcommand
 def music_del(uri, *playlists):
@@ -273,7 +282,7 @@ def music_del(uri, *playlists):
     if not playlists:
         playlists = ['default']
     for playlist in playlists:
-        send_redis_command('music-del', playlist=playlist, uri=uri)
+        send_redis_command('music-del', playlist=playlist, uri=parse_location(uri))
 
 @subcommand
 def music_playlist(playlist):
