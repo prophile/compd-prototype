@@ -93,7 +93,7 @@ class BlankContent(Content):
 class ClockContent(Content):
     def clock_display(self):
         import time
-        return '<h1>{0}</h1><br><small>Competition time: {1}</small>'.format(time.strftime('%H:%M:%S'), self.controller.competition_time)
+        return '<h1 style="font-family: fixed-width;">{0}</h1><br><small>Competition time: {1}</small>'.format(time.strftime('%H:%M:%S'), self.controller.competition_time)
 
     def update(self, screen):
         return {'clock': self.clock_display()}
