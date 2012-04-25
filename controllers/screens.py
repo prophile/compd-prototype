@@ -84,7 +84,7 @@ class OverriddenContent(Content):
 
 class NoEntryContent(Content):
     def content(self, screen):
-        return '<img src="images/no-entry.png" style="margin-top: 5em;" alt="NO ENTRY">'
+        return '<div style="text-align: center; width: 100%; margin-left: auto; margin-right: auto;"><object type="image/svg+xml" data="images/no-entry.svg" style="width: 620px; height: 620px;" alt="NO ENTRY"></object>'
 
 class BlankContent(Content):
     def content(self, screen):
@@ -384,7 +384,7 @@ class ScreenController(Controller):
         class BaseResource(resource.Resource):
             def getChild(self, path, request):
                 if path == 'images':
-                    return static.File('images', 'image/png')
+                    return static.File('images')
                 elif path == 'events':
                     return EventDirResource()
                 elif path == 'favicon.ico':
