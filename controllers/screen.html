@@ -33,6 +33,13 @@
                 };
                 xhr.send();
             }, 800);
+            document.onkeypress = function(key) {
+                if (key.which == 107) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'panic', true);
+                    xhr.send();
+                }
+            };
         </script>
     </body>
 </html>
