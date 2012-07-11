@@ -3,7 +3,8 @@
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   width="600" height="600" viewBox="0 0 600 600">
+   width="400" height="400" viewBox="0 0 400 400"
+   preserveAspectRatio="xMinYMin meet">
   <metadata>
     <rdf:RDF>
       <cc:Work rdf:about="">
@@ -12,6 +13,6 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <circle cx="300" cy="300" r="300" style="fill:#cc0000"/>
-  <rect x="106.677" y="250" width="386.646" height="100" style="fill:#ffffff"/>
+  <circle cx="200" cy="200" r="200" style="fill:#cc0000"/>
+  <rect x="71.188" y="166.66" width="257.764" height="66.66" style="fill:#ffffff"/>
 </svg>

@@ -6,6 +6,7 @@ from controller import ENTER_TIME, BOOT_TIME, LIVE_TIME, SETTLE_TIME
 from controller import FULL_MATCH_INTERVAL, PRE_START_INTERVAL, POST_START_INTERVAL
 from twisted.internet import reactor, task
 from twisted.web import server, resource, static, error
+import random
 
 class Screen(object):
     def __init__(self, controller, id):
@@ -84,7 +85,7 @@ class OverriddenContent(Content):
 
 class NoEntryContent(Content):
     def content(self, screen):
-        return '<div style="text-align: center; width: 100%; margin-left: auto; margin-right: auto;"><object type="image/svg+xml" data="images/no-entry.svg" style="width: 620px; height: 620px;" alt="NO ENTRY"></object>'
+        return '<div style="text-align: center; width: 100%; margin-left: auto; margin-right: auto;"><object type="image/svg+xml" data="images/no-entry.svg" style="width: 420px; height: 420px;" alt="NO ENTRY"></object>'
 
 class BlankContent(Content):
     def content(self, screen):
@@ -93,7 +94,7 @@ class BlankContent(Content):
 class ClockContent(Content):
     def clock_display(self):
         import time
-        return '<h1 style="font-family: fixed-width;">{0}</h1><br><small>Competition time: {1}</small>'.format(time.strftime('%H:%M:%S'), self.controller.competition_time)
+        return '<h2 style="font-family: fixed-width; left: -1em">{0}</h2><!-- <br><small>Competition time: {1}</small> -->'.format(time.strftime('%H:%M:%S'), self.controller.competition_time)
 
     def update(self, screen):
         return {'clock': self.clock_display()}
@@ -113,10 +114,11 @@ class NextMatchContent(Content):
                 import time
                 teams = self.controller.r.lrange("match.schedule.{0}.teams".format(next_match), 0, -1)
                 start = self.controller.r.get("match.schedule.{0}.start".format(next_match))
+                team_names = [self.controller.r.get("teams.{0}.name".format(team)) for team in teams]
                 start_rt = self.controller.competition_time_to_real_time(int(start))
                 start_str = time.strftime('%H:%M:%S', time.localtime(start_rt))
-                return 'Next match: <strong>{0}</strong><br>{1}'.format(' '.join(teams), start_str)
-        return 'no upcoming matches'
+                return '<div style="margin-top: 6em; margin-bottom: 3em;"><strong style="font-size: 5em;">Up Next</strong></div> <strong style="font-size: x-large;">{0}</strong><br><h4>{1}</h4>'.format('<br>'.join(team_names), start_str)
+        return '<h1>Arena</h1>'
 
     def action_for_event(self, event):
         if event in ('team', 'schedule', 'offset'):
@@ -124,12 +126,20 @@ class NextMatchContent(Content):
 
 class LayoutContent(Content):
     def content(self, screen):
+        import base64
         match = self.controller.r.get('match.current')
         if match is None:
             return '?'
         state = self.controller.r.get('comp.state.match')
         teams = self.controller.r.lrange("match.schedule.{0}.teams".format(match), 0, -1)
-        return '<table><tr><td></td><td>{0}</td><td></td></tr><tr><td>{3}</td><td></td><td>{1}</td></tr><tr><td></td><td>{2}</td><td></td></tr></table>'.format(*teams)
+        with open('images/layout.svg') as f:
+            layout_template = f.read()
+        layout_text = layout_template.format(Z0 = teams[0],
+                                             Z1 = teams[1],
+                                             Z2 = teams[2],
+                                             Z3 = teams[3])
+        data_uri = 'data:image/svg+xml;charset=UTF-8;base64,{0}'.format(base64.b64encode(layout_text))
+        return '<div style="text-align: center; width: 100%; margin-left: auto; margin-right: auto;"><object type="image/svg+xml" data="{0}" style="width: 420px; height: 420px;" alt="pony"></object>'.format(data_uri)
 
     def action_for_event(self, event):
         if event in ('team', 'schedule'):
@@ -167,18 +177,21 @@ class InfoContent(Content):
             match = key.split('.')[2]
             match_starts[self.controller.competition_time_to_real_time(int(self.controller.r.get(key)))] = match
         rt = time.time()
-        sched = '<table>'
-        sched += '<col style="width: 8em;">'
-        sched += '<col style="width: 20em;">'
+        sched = '<div width="100%" height="100%"><table>'
+        sched += '<col style="width: 8em; font-size: x-large;">'
+        sched += '<col style="width: 20em; font-size: x-large;">'
         sched += '<tr><th>Time</th><th>Teams</th></tr>'
         for t, match in sorted(match_starts.items()):
             teams = self.controller.r.lrange("match.schedule.{0}.teams".format(match), 0, -1)
-            sched += '<tr><td style="color: {2};">{0}</td><td style="color: {2};">{1}</td></tr>'.format(time.strftime('%H:%M:%S', time.localtime(t)), ', '.join(teams), 'black' if t > rt else '#666666')
-        sched += '</table>'
+            if rt - 30*60 < t < rt + 40*60:
+                sched += '<tr><td style="color: {2}; font-size: x-large;">{0}</td><td style="color: {2}; font-size: x-large;">{1}</td></tr>'.format(time.strftime('%H:%M:%S', time.localtime(t)), ', '.join(teams), 'black' if t > rt else '#666666')
+        sched += '</table></div>'
         return sched
 
     def action_for_event(self, event):
         if event in ('offset', 'team', 'schedule'):
+            return self.content
+        elif event == 'heartbeat' and random.random() < 0.05:
             return self.content
 
 class JudgeStatsContent(Content):
@@ -188,22 +201,20 @@ class JudgeStatsContent(Content):
             return '?'
         state = self.controller.r.get('comp.state.match')
         teams = self.controller.r.lrange("match.schedule.{0}.teams".format(match), 0, -1)
-        stats = '<h2>Match {0}</h2>'.format(match)
-        stats += '<h3>{0} <span id="time">{1}</span></h3><hr>'.format(state, match_time(self.controller, match))
+        stats = '<h4>Match {0}</h4>'.format(match)
+        stats += '<h4>{0} <span id="time">{1}</span></h4><hr>'.format(state, match_time(self.controller, match))
         stats += '<table>'
         stats += '<col style="width: 10em">'
         stats += '<col style="width: 10em;">'
         stats += '<col style="width: 40em;">'
-        stats += '<col style="width: 40em;">'
-        stats += '<tr><th>Team</th><th>College</th><th>Info</th><th>Notes</th></tr>'
+        stats += '<tr><th>Team</th><th>College</th><th>Notes</th></tr>'
         for team in teams:
             name = self.controller.r.get('teams.{0}.name'.format(team))
             if name is None:
                 raise ValueError("team {0} does not exist".format(name))
             college = self.controller.r.get('teams.{0}.college'.format(team))
-            info = self.controller.r.get('teams.{0}.info'.format(team)).strip()
             notes = self.controller.r.get('teams.{0}.notes'.format(team)).strip()
-            stats += '<tr><td style="font-weight: bold;">{0}: {1}</td><td>{2}</td><td style="text-align: justify;">{3}</td><td style="text-align: justify;">{4}</td></tr>'.format(team, name, college, info, notes)
+            stats += '<tr><td style="font-weight: bold;">{0}: {1}</td><td>{2}</td><td style="text-align: justify;">{3}</td></tr>'.format(team, name, college, notes)
         stats += '</table>'
         next_match, _ = self.controller.match_at_competition_time(self.controller.competition_time + FULL_MATCH_INTERVAL)
         stats += '<br>Next match: '
@@ -381,6 +392,15 @@ class ScreenController(Controller):
                     else:
                         return error.ForbiddenResource()
 
+        class PanicTriggerResource(resource.Resource):
+            isLeaf = True
+
+            def render_POST(self, request):
+                import json
+                controller.r.publish('comp.command', json.dumps({'command': 'panic'}))
+                request.setHeader("Content-type", "text/plain; charset=UTF-8")
+                return str("OK")
+
         class BaseResource(resource.Resource):
             def getChild(self, path, request):
                 if path == 'images':
@@ -393,6 +413,8 @@ class ScreenController(Controller):
                     return static.File('assets')
                 elif path == 'id':
                     return IDGetterResource()
+                elif path == 'panic':
+                    return PanicTriggerResource()
                 elif path == '':
                     return static.File('screen.html', 'text/html; charset=UTF-8')
                 else:
