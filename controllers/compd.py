@@ -3,7 +3,7 @@ from twisted.internet import reactor, protocol, error
 from arena import ArenaController
 from screens import ScreenController
 from state import StateController
-from music import MusicController
+#from music import MusicController
 
 SERVER_COMMAND = '/usr/local/bin/redis-server'
 
@@ -14,8 +14,8 @@ def bring_up_controllers():
     arena = ArenaController()
     print "Bringing up screen controller..."
     screens = ScreenController()
-    print "Bringing up music controller..."
-    music = MusicController()
+    #print "Bringing up music controller..."
+    #music = MusicController()
     print "compd started"
 
 def bring_up_redis():
